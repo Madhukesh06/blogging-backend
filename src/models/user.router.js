@@ -16,6 +16,8 @@ app.get("/", (req, res) => {
 
 app.post("/signup", async (req, res) => {
   const { email, password } = req.body;
+  let existUser = User.findOne({ email });
+  if (existUser) return res.status(401).send("User already exists");
   const user = new User({ email, password });
   await user.save();
   res.send(user);
