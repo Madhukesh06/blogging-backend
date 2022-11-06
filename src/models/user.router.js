@@ -8,6 +8,17 @@ const REFKEY = process.env.REFKEY;
 const mainExpiresIn = process.env.mainExpiresIn;
 const refreshExpiresIn = process.env.refreshExpiresIn;
 
+const nodeMailer = require("nodemailer");
+
+const transport = nodeMailer.createTransport({
+  host: "smtp.ethereal.email",
+  port: 587,
+  auth: {
+    user: "timmothy.greenholt@ethereal.email",
+    pass: "CbGznH6A1NmZzpzVvd",
+  },
+});
+
 const app = express.Router();
 
 app.get("/", (req, res) => {
@@ -59,7 +70,7 @@ app.get("/:id", async (req, res) => {
   }
 });
 
-//button
+//button - refresh token if expired
 
 app.post("/refresh", async (req, res) => {
   const refreshToken = req.headers.authorization;
@@ -77,6 +88,64 @@ app.post("/refresh", async (req, res) => {
   } catch (e) {
     res.send("refresh token is invalid");
   }
+});
+
+// Verify token - create new token and  send token to user
+const Blacklist = [];
+app.post("/verify", async (req, res) => {
+  const token = req.body.token;
+  console.log(token);
+
+  try {
+    const verify = jwt.verify(token, "GOLDENTOKEN");
+    res.send({ message: "Token is valid go ahead and work" });
+  } catch (e) {
+    Blacklist.push(token);
+    var data = jwt.decode(token);
+    delete data["iat"];
+    delete data["exp"];
+    const newToken = jwt.sign(data, "GOLDENTOKEN", { expiresIn: "5 mins" });
+    res.send({
+      ErrorMessage: "Token has been expired ! Created a new Token",
+      token: newToken,
+    });
+  }
+});
+
+// Get-OTP
+const otps = { email: "" };
+app.post("/reset-password/getotp", async (req, res) => {
+  const { email } = req.body;
+  const otp = Math.floor(Math.random() * 9999);
+  otps[email] = otp;
+
+  transport
+    .sendMail({
+      to: email,
+      from: "abc@gmail.com",
+      subject: "OTP",
+      text: `Hello ${email} ,your OTP is ${otp}`,
+    })
+    .then(() => {
+      console.log("Email sent successfully");
+      res.send("Email sent success");
+    });
+});
+
+app.post("/reset-password/reset", async (req, res) => {
+  const { email, newPassword, otp } = req.body;
+  console.log(otp, email, newPassword, otps);
+
+  if (otps[email] == otp) {
+    delete otps[email];
+    await User.findOneAndUpdate(
+      { email: email }, // Findby
+      { password: newPassword }, // update password
+      { new: true } // instant update
+    );
+    return res.send("New password updated successfully");
+  }
+  return res.send("Invalid OTP");
 });
 
 module.exports = app;
