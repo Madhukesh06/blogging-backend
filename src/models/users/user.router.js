@@ -25,6 +25,12 @@ app.get("/", (req, res) => {
   res.send("hello world!");
 });
 
+app.get("/gitauth", (req, res) => {
+  res.send(
+    '<a href="https://github.com/login/oauth/authorize?client_id=3a9e877831326ff986d7">Test</a>'
+  );
+});
+
 app.post("/signup", async (req, res) => {
   const { email, password } = req.body;
   let existUser = await User.findOne({ email });
@@ -147,5 +153,20 @@ app.post("/reset-password/reset", async (req, res) => {
   }
   return res.send("Invalid OTP");
 });
+
+//Blog API
+// ? All Blog API->
+// app.get("/blogs", async (req, res) => {
+//   let data = await BlogModel.find({})
+//   res.send(data)
+// })
+
+// app.get("/blogs/:id", async (req, res) => {
+//   // var title = req.params.title.replace("-", " ")
+//   var id = req.params.id
+//   let data = await BlogModel.findOne({_id: id})
+
+//   res.send(data)
+// })
 
 module.exports = app;
